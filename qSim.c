@@ -1,6 +1,5 @@
 #include "../include/qSim.h"
 
-// Global variables
 SimulationStats* stats = NULL;
 EventQueue* eventQueue = NULL;
 TellerQueue** tellerQueues = NULL;
@@ -11,8 +10,6 @@ Customer* customers = NULL;
 void logFunctionPointerCall(const char* functionName) {
     printf("[FUNCTION POINTER CALLED]: %s\n", functionName);
 }
-
-// Event Queue Implementation
 EventQueue* createEventQueue() {
     EventQueue* eq = (EventQueue*)malloc(sizeof(EventQueue));
     eq->front = NULL;
@@ -53,7 +50,6 @@ void freeEventQueue(EventQueue* eq) {
     free(eq);
 }
 
-// Teller Queue Implementation
 TellerQueue* createTellerQueue(int tellerID) {
     TellerQueue* queue = (TellerQueue*)malloc(sizeof(TellerQueue));
     queue->tellerID = tellerID;
@@ -121,7 +117,6 @@ void freeTellerQueue(TellerQueue* queue) {
     free(queue);
 }
 
-// Random number generators
 float generateRandomArrivalTime() {
     return stats->simulationTime * rand() / (float)RAND_MAX;
 }
@@ -134,7 +129,6 @@ float generateRandomIdleTime() {
     return TELLER_IDLE_MIN + (TELLER_IDLE_MAX - TELLER_IDLE_MIN) * rand() / (float)RAND_MAX;
 }
 
-// Event action functions
 void customerArrivalAction(Event* event) {
     logFunctionPointerCall("customerArrivalAction");
 
@@ -153,7 +147,6 @@ void customerArrivalAction(Event* event) {
                customer->id, event->time, shortestQueueIndex, tellerQueues[shortestQueueIndex].length);
     }
 
-    // Check if any teller is idle and can serve this customer
     for (int i = 0; i < stats->totalTellers; i++) {
         if (tellers[i].isIdle) {
             Event* tellerEvent = (Event*)malloc(sizeof(Event));
@@ -189,7 +182,6 @@ void customerDepartureAction(Event* event) {
     printf("Customer %d departed at time %.2f (wait time: %.2f)\n", 
            customer->id, event->time, waitTime);
 
-    // Create teller free event
     Event* tellerEvent = (Event*)malloc(sizeof(Event));
     tellerEvent->type = TELLER_FREE;
     tellerEvent->time = event->time;
@@ -206,14 +198,11 @@ void tellerFreeAction(Event* event) {
     Teller* teller = &tellers[event->tellerID];
     Customer* nextCustomer = NULL;
 
-    // Find next customer to serve
     if (stats->queueType == SINGLE_QUEUE) {
         nextCustomer = removeCustomerFromQueue(singleQueue);
     } else {
-        // First check own queue
-        nextCustomer = removeCustomerFromQueue(&tellerQueues[event->tellerID]);
 
-        // If own queue empty, check other queues
+        nextCustomer = removeCustomerFromQueue(&tellerQueues[event->tellerID]);
         if (nextCustomer == NULL) {
             for (int i = 0; i < stats->totalTellers; i++) {
                 if (i != event->tellerID && tellerQueues[i].length > 0) {
@@ -225,7 +214,7 @@ void tellerFreeAction(Event* event) {
     }
 
     if (nextCustomer != NULL) {
-        // Start serving customer
+      
         teller->isIdle = 0;
         nextCustomer->serviceStartTime = event->time;
         nextCustomer->tellerID = event->tellerID;
@@ -238,7 +227,7 @@ void tellerFreeAction(Event* event) {
         printf("Teller %d started serving customer %d at time %.2f (service time: %.2f)\n", 
                event->tellerID, nextCustomer->id, event->time, serviceTime);
 
-        // Schedule customer departure
+     
         Event* departureEvent = (Event*)malloc(sizeof(Event));
         departureEvent->type = CUSTOMER_DEPARTURE;
         departureEvent->time = event->time + serviceTime;
@@ -249,7 +238,7 @@ void tellerFreeAction(Event* event) {
         insertEvent(eventQueue, departureEvent);
 
     } else {
-        // No customers to serve, go idle
+        
         teller->isIdle = 1;
         float idleTime = generateRandomIdleTime() / 60.0; // Convert seconds to minutes
         stats->totalIdleTime += idleTime;
@@ -258,7 +247,7 @@ void tellerFreeAction(Event* event) {
         printf("Teller %d going idle at time %.2f for %.2f minutes\n", 
                event->tellerID, event->time, idleTime);
 
-        // Schedule next teller check
+       
         Event* nextTellerEvent = (Event*)malloc(sizeof(Event));
         nextTellerEvent->type = TELLER_FREE;
         nextTellerEvent->time = event->time + idleTime;
@@ -271,7 +260,7 @@ void tellerFreeAction(Event* event) {
 }
 
 void initializeSimulation(int customers, int tellers, float simTime, float avgServiceTime, QueueType qType) {
-    // Initialize statistics
+   
     stats = (SimulationStats*)malloc(sizeof(SimulationStats));
     stats->totalCustomers = customers;
     stats->totalTellers = tellers;
@@ -286,10 +275,9 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
     stats->waitTimes = (float*)malloc(customers * sizeof(float));
     stats->waitTimeCount = 0;
 
-    // Initialize event queue
     eventQueue = createEventQueue();
 
-    // Initialize customers
+
     ::customers = (Customer*)malloc(customers * sizeof(Customer));
     for (int i = 0; i < customers; i++) {
         ::customers[i].id = i;
@@ -300,7 +288,6 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
         ::customers[i].next = NULL;
     }
 
-    // Initialize tellers
     ::tellers = (Teller*)malloc(tellers * sizeof(Teller));
     for (int i = 0; i < tellers; i++) {
         ::tellers[i].id = i;
@@ -312,7 +299,6 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
         ::tellers[i].next = NULL;
     }
 
-    // Initialize queues
     if (qType == SINGLE_QUEUE) {
         singleQueue = createTellerQueue(-1);
     } else {
@@ -322,7 +308,6 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
         }
     }
 
-    // Generate customer arrival events
     for (int i = 0; i < customers; i++) {
         float arrivalTime = generateRandomArrivalTime();
 
@@ -348,13 +333,12 @@ void runSimulation() {
         Event* currentEvent = removeEvent(eventQueue);
         if (currentEvent == NULL) break;
 
-        // Only process events within simulation time
+        
         if (currentEvent->time > stats->simulationTime) {
             free(currentEvent);
             continue;
         }
 
-        // Execute event action using function pointer
         if (currentEvent->action != NULL) {
             currentEvent->action(currentEvent);
         }
@@ -423,7 +407,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Parse command line arguments
     int numCustomers = atoi(argv[1]);
     int numTellers = atoi(argv[2]);
     float simulationTime = atof(argv[3]);
@@ -434,23 +417,19 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Initialize random seed
     srand(time(NULL));
 
     printf("Bank Simulation Program\n");
     printf("=======================\n");
 
-    // Run simulation with single queue
     printf("\n\n*** SIMULATION 1: SINGLE QUEUE ***\n");
     initializeSimulation(numCustomers, numTellers, simulationTime, averageServiceTime, SINGLE_QUEUE);
     runSimulation();
     printStatistics();
 
-    // Save results for comparison
     float singleQueueAvgWaitTime = calculateMean(stats->waitTimes, stats->waitTimeCount);
     float singleQueueMaxWaitTime = stats->maxWaitTime;
 
-    // Clean up
     freeEventQueue(eventQueue);
     if (singleQueue != NULL) freeTellerQueue(singleQueue);
     free(stats->waitTimes);
@@ -458,20 +437,16 @@ int main(int argc, char* argv[]) {
     free(customers);
     free(tellers);
 
-    // Reset random seed for fair comparison
     srand(time(NULL));
 
-    // Run simulation with separate queues
     printf("\n\n*** SIMULATION 2: SEPARATE QUEUES ***\n");
     initializeSimulation(numCustomers, numTellers, simulationTime, averageServiceTime, SEPARATE_QUEUES);
     runSimulation();
     printStatistics();
 
-    // Save results for comparison
     float separateQueuesAvgWaitTime = calculateMean(stats->waitTimes, stats->waitTimeCount);
     float separateQueuesMaxWaitTime = stats->maxWaitTime;
 
-    // Comparison analysis
     printf("\n\n=== COMPARISON ANALYSIS ===\n");
     printf("Single Queue - Average Wait Time: %.2f minutes\n", singleQueueAvgWaitTime);
     printf("Separate Queues - Average Wait Time: %.2f minutes\n", separateQueuesAvgWaitTime);
@@ -486,7 +461,6 @@ int main(int argc, char* argv[]) {
                ((singleQueueAvgWaitTime - separateQueuesAvgWaitTime) / singleQueueAvgWaitTime) * 100);
     }
 
-    // Clean up
     freeEventQueue(eventQueue);
     if (tellerQueues != NULL) {
         for (int i = 0; i < numTellers; i++) {
