@@ -1,0 +1,103 @@
+# Makefile for qSim - Bank Simulation Program
+
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -g -Iinclude
+LDFLAGS = -lm
+SRCDIR = src
+INCDIR = include
+BINDIR = bin
+OUTPUTDIR = output
+
+# Source files
+SOURCES = $(wildcard $(SRCDIR)/*.c)
+OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(BINDIR)/%.o)
+
+# Target executable
+TARGET = $(BINDIR)/qSim
+
+# Default target
+all: $(TARGET)
+
+# Create directories
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+$(OUTPUTDIR):
+	mkdir -p $(OUTPUTDIR)
+
+# Link object files to create executable
+$(TARGET): $(OBJECTS) | $(BINDIR)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+	@echo "Build successful! Executable created: $(TARGET)"
+
+# Compile source files to object files
+$(BINDIR)/%.o: $(SRCDIR)/%.c | $(BINDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Run test cases
+test: $(TARGET) | $(OUTPUTDIR)
+	@echo "Running test case 1: 50 customers, 3 tellers, 30 minutes, 2.0 avg service"
+	@$(TARGET) 50 3 30 2.0 > $(OUTPUTDIR)/test1_output.txt 2>&1
+	@echo "Test 1 complete. Output saved to $(OUTPUTDIR)/test1_output.txt"
+	@echo ""
+	@echo "Running test case 2: 100 customers, 4 tellers, 60 minutes, 2.3 avg service"
+	@$(TARGET) 100 4 60 2.3 > $(OUTPUTDIR)/test2_output.txt 2>&1
+	@echo "Test 2 complete. Output saved to $(OUTPUTDIR)/test2_output.txt"
+	@echo ""
+	@echo "Running test case 3: 200 customers, 5 tellers, 120 minutes, 1.5 avg service"
+	@$(TARGET) 200 5 120 1.5 > $(OUTPUTDIR)/test3_output.txt 2>&1
+	@echo "Test 3 complete. Output saved to $(OUTPUTDIR)/test3_output.txt"
+	@echo "All tests completed!"
+
+# Run interactive test
+run: $(TARGET)
+	@echo "Running interactive test with 100 customers, 4 tellers, 60 minutes, 2.3 avg service"
+	$(TARGET) 100 4 60 2.3
+
+# Generate performance analysis data
+analyze: $(TARGET) | $(OUTPUTDIR)
+	@echo "Generating performance analysis data..."
+	@echo "# Tellers vs Average Wait Time (Single Queue)" > $(OUTPUTDIR)/performance_data.txt
+	@echo "Tellers,AvgWaitTime" >> $(OUTPUTDIR)/performance_data.txt
+	@for tellers in 1 2 3 4 5 6 7 8; do \
+		echo "Testing with $$tellers tellers..."; \
+		$(TARGET) 100 $$tellers 60 2.0 | grep "Single Queue - Average Wait Time" | awk '{print "'"$$tellers"'," $$6}' >> $(OUTPUTDIR)/performance_data.txt; \
+	done
+	@echo "Performance data generated in $(OUTPUTDIR)/performance_data.txt"
+
+# Clean build artifacts
+clean:
+	rm -rf $(BINDIR)/*.o $(TARGET)
+	@echo "Clean complete"
+
+# Clean everything including output files
+cleanall: clean
+	rm -rf $(OUTPUTDIR)/*
+	@echo "All files cleaned"
+
+# Install (copy to system path - optional)
+install: $(TARGET)
+	cp $(TARGET) /usr/local/bin/
+	@echo "qSim installed to /usr/local/bin/"
+
+# Uninstall
+uninstall:
+	rm -f /usr/local/bin/qSim
+	@echo "qSim uninstalled"
+
+# Help
+help:
+	@echo "Available targets:"
+	@echo "  all      - Build the qSim executable"
+	@echo "  test     - Run all test cases"
+	@echo "  run      - Run interactive test"
+	@echo "  analyze  - Generate performance analysis data"
+	@echo "  clean    - Remove object files and executable"
+	@echo "  cleanall - Remove all generated files"
+	@echo "  install  - Install qSim to system path"
+	@echo "  help     - Show this help message"
+	@echo ""
+	@echo "Usage: ./bin/qSim #customers #tellers simulationTime averageServiceTime"
+	@echo "Example: ./bin/qSim 100 4 60 2.3"
+
+.PHONY: all test run analyze clean cleanall install uninstall help

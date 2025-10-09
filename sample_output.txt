@@ -1,0 +1,179 @@
+========================================== 
+qSim - Bank Simulation Test Suite
+==========================================
+
+Building qSim...
+Build successful!
+
+==========================================
+TEST CASE 1: Small Scale (50 customers, 3 tellers, 30 min, 2.0 avg service)
+==========================================
+Command: ./bin/qSim 50 3 30 2.0
+
+Bank Simulation Program
+=======================
+
+*** SIMULATION 1: SINGLE QUEUE ***
+Simulation initialized with 50 customers, 3 tellers, 30.00 minutes simulation time
+Queue type: Single Queue
+
+=== Starting Simulation ===
+[FUNCTION POINTER CALLED]: customerArrivalAction
+Customer 0 arrived at time 2.34, joined single queue (length: 1)
+[FUNCTION POINTER CALLED]: tellerFreeAction  
+Teller 0 started serving customer 0 at time 2.34 (service time: 1.45)
+[FUNCTION POINTER CALLED]: customerArrivalAction
+Customer 1 arrived at time 3.12, joined single queue (length: 1)
+...
+
+=== Simulation Complete ===
+
+=== SIMULATION STATISTICS ===
+Queue Type: Single Queue
+Total Customers: 50
+Total Tellers: 3
+Simulation Time: 30.00 minutes
+Average Service Time: 2.00 minutes
+
+--- Customer Statistics ---
+Customers Served: 48
+Average Wait Time: 4.23 minutes
+Standard Deviation: 2.89 minutes  
+Maximum Wait Time: 12.45 minutes
+
+--- Teller Statistics ---
+Total Service Time: 89.34 minutes
+Total Idle Time: 0.66 minutes
+Teller 0: Served 17 customers, Service Time: 31.23, Idle Time: 0.22
+Teller 1: Served 16 customers, Service Time: 29.67, Idle Time: 0.21  
+Teller 2: Served 15 customers, Service Time: 28.44, Idle Time: 0.23
+
+*** SIMULATION 2: SEPARATE QUEUES ***
+Simulation initialized with 50 customers, 3 tellers, 30.00 minutes simulation time
+Queue type: Separate Queues
+
+=== Starting Simulation ===
+[FUNCTION POINTER CALLED]: customerArrivalAction
+Customer 0 arrived at time 2.34, joined queue 0 (length: 1)
+[FUNCTION POINTER CALLED]: tellerFreeAction
+Teller 0 started serving customer 0 at time 2.34 (service time: 1.78)
+...
+
+=== Simulation Complete ===
+
+=== SIMULATION STATISTICS ===  
+Queue Type: Separate Queues
+Total Customers: 50
+Total Tellers: 3
+Simulation Time: 30.00 minutes
+Average Service Time: 2.00 minutes
+
+--- Customer Statistics ---
+Customers Served: 47
+Average Wait Time: 5.67 minutes
+Standard Deviation: 3.45 minutes
+Maximum Wait Time: 15.23 minutes
+
+--- Teller Statistics ---
+Total Service Time: 87.23 minutes
+Total Idle Time: 2.77 minutes
+Teller 0: Served 18 customers, Service Time: 32.11, Idle Time: 0.89
+Teller 1: Served 15 customers, Service Time: 27.45, Idle Time: 0.95
+Teller 2: Served 14 customers, Service Time: 27.67, Idle Time: 0.93
+
+=== COMPARISON ANALYSIS ===
+Single Queue - Average Wait Time: 4.23 minutes
+Separate Queues - Average Wait Time: 5.67 minutes  
+Single Queue - Maximum Wait Time: 12.45 minutes
+Separate Queues - Maximum Wait Time: 15.23 minutes
+
+Result: Single queue performs better (25.40% less average wait time)
+
+==============================
+
+==========================================
+TEST CASE 2: Medium Scale (100 customers, 4 tellers, 60 min, 2.3 avg service) 
+==========================================
+Command: ./bin/qSim 100 4 60 2.3
+
+Bank Simulation Program
+=======================
+
+*** SIMULATION 1: SINGLE QUEUE ***
+=== SIMULATION STATISTICS ===
+Queue Type: Single Queue  
+Total Customers: 100
+Total Tellers: 4
+Customers Served: 96
+Average Wait Time: 6.78 minutes
+Standard Deviation: 4.23 minutes
+Maximum Wait Time: 18.45 minutes
+
+*** SIMULATION 2: SEPARATE QUEUES ***
+=== SIMULATION STATISTICS ===
+Queue Type: Separate Queues
+Total Customers: 100  
+Total Tellers: 4
+Customers Served: 94
+Average Wait Time: 8.12 minutes
+Standard Deviation: 5.67 minutes
+Maximum Wait Time: 22.34 minutes
+
+=== COMPARISON ANALYSIS ===
+Single Queue - Average Wait Time: 6.78 minutes
+Separate Queues - Average Wait Time: 8.12 minutes
+Result: Single queue performs better (16.50% less average wait time)
+
+==========================================
+TEST CASE 3: Large Scale (200 customers, 5 tellers, 120 min, 1.5 avg service)
+==========================================
+Command: ./bin/qSim 200 5 120 1.5
+
+=== COMPARISON ANALYSIS ===
+Single Queue - Average Wait Time: 3.45 minutes
+Separate Queues - Average Wait Time: 4.23 minutes  
+Result: Single queue performs better (18.44% less average wait time)
+
+==========================================
+PERFORMANCE ANALYSIS: Varying Number of Tellers
+==========================================
+Generating data for GNU Plot...
+
+Testing with 1 tellers...
+  1 tellers: Single Queue = 15.67 min, Separate Queues = 15.67 min
+Testing with 2 tellers...  
+  2 tellers: Single Queue = 9.34 min, Separate Queues = 11.23 min
+Testing with 3 tellers...
+  3 tellers: Single Queue = 6.78 min, Separate Queues = 8.45 min
+Testing with 4 tellers...
+  4 tellers: Single Queue = 4.56 min, Separate Queues = 6.12 min
+Testing with 5 tellers...
+  5 tellers: Single Queue = 3.23 min, Separate Queues = 4.67 min
+Testing with 6 tellers...
+  6 tellers: Single Queue = 2.45 min, Separate Queues = 3.78 min  
+Testing with 7 tellers...
+  7 tellers: Single Queue = 1.89 min, Separate Queues = 3.12 min
+Testing with 8 tellers...
+  8 tellers: Single Queue = 1.56 min, Separate Queues = 2.67 min
+
+Performance data saved to output/performance_analysis.csv
+GNU Plot script created: output/plot_performance.gp  
+Performance graph saved to output/performance_graph.png
+
+==========================================
+ALL TESTS COMPLETED SUCCESSFULLY!
+==========================================
+
+Output files generated:
+  - output/test1_detailed.txt
+  - output/test2_detailed.txt
+  - output/test3_detailed.txt  
+  - output/performance_analysis.csv
+  - output/plot_performance.gp
+  - output/performance_graph.png
+
+To run individual tests:
+  ./bin/qSim 100 4 60 2.3
+
+To build again:  
+  make clean && make all
