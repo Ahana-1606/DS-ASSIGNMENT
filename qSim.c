@@ -1,4 +1,4 @@
-#include "../include/qSim.h"
+#include "qSim.h"
 
 SimulationStats* stats = NULL;
 EventQueue* eventQueue = NULL;
@@ -10,8 +10,12 @@ Customer* customers = NULL;
 void logFunctionPointerCall(const char* functionName) {
     printf("[FUNCTION POINTER CALLED]: %s\n", functionName);
 }
-EventQueue* createEventQueue() {
+EventQueue* createEventQueue(void) {
     EventQueue* eq = (EventQueue*)malloc(sizeof(EventQueue));
+    if (eq == NULL) {
+        printf("Error: Memory allocation failed for EventQueue\n");
+        exit(1);
+    }
     eq->front = NULL;
     eq->size = 0;
     return eq;
@@ -82,20 +86,21 @@ Customer* removeCustomerFromQueue(TellerQueue* queue) {
     return customer;
 }
 
-int findShortestQueue(TellerQueue* queues, int numTellers) {
+// 1. Fix the findShortestQueue function signature and implementation
+int findShortestQueue(TellerQueue** queues, int numTellers) {
     int shortestIndex = 0;
-    int minLength = queues[0].length;
+    int minLength = queues[0]->length;
     int equalCount = 1;
     int* equalIndices = (int*)malloc(numTellers * sizeof(int));
     equalIndices[0] = 0;
 
     for (int i = 1; i < numTellers; i++) {
-        if (queues[i].length < minLength) {
-            minLength = queues[i].length;
+        if (queues[i]->length < minLength) {
+            minLength = queues[i]->length;
             shortestIndex = i;
             equalCount = 1;
             equalIndices[0] = i;
-        } else if (queues[i].length == minLength) {
+        } else if (queues[i]->length == minLength) {
             equalIndices[equalCount++] = i;
         }
     }
@@ -132,6 +137,11 @@ float generateRandomIdleTime() {
 void customerArrivalAction(Event* event) {
     logFunctionPointerCall("customerArrivalAction");
 
+    if (event == NULL || event->customerID >= stats->totalCustomers) {
+        printf("Error: Invalid event in customerArrivalAction\n");
+        return;
+    }
+
     Customer* customer = &customers[event->customerID];
     customer->arrivalTime = event->time;
 
@@ -142,9 +152,9 @@ void customerArrivalAction(Event* event) {
     } else {
         int shortestQueueIndex = findShortestQueue(tellerQueues, stats->totalTellers);
         customer->tellerID = shortestQueueIndex;
-        addCustomerToQueue(&tellerQueues[shortestQueueIndex], customer);
+        addCustomerToQueue(tellerQueues[shortestQueueIndex], customer);
         printf("Customer %d arrived at time %.2f, joined queue %d (length: %d)\n", 
-               customer->id, event->time, shortestQueueIndex, tellerQueues[shortestQueueIndex].length);
+               customer->id, event->time, shortestQueueIndex, tellerQueues[shortestQueueIndex]->length);
     }
 
     for (int i = 0; i < stats->totalTellers; i++) {
@@ -164,6 +174,11 @@ void customerArrivalAction(Event* event) {
 
 void customerDepartureAction(Event* event) {
     logFunctionPointerCall("customerDepartureAction");
+
+    if (event == NULL || event->customerID >= stats->totalCustomers) {
+        printf("Error: Invalid event in customerDepartureAction\n");
+        return;
+    }
 
     Customer* customer = &customers[event->customerID];
     customer->departureTime = event->time;
@@ -201,12 +216,11 @@ void tellerFreeAction(Event* event) {
     if (stats->queueType == SINGLE_QUEUE) {
         nextCustomer = removeCustomerFromQueue(singleQueue);
     } else {
-
-        nextCustomer = removeCustomerFromQueue(&tellerQueues[event->tellerID]);
+        nextCustomer = removeCustomerFromQueue(tellerQueues[event->tellerID]);
         if (nextCustomer == NULL) {
             for (int i = 0; i < stats->totalTellers; i++) {
-                if (i != event->tellerID && tellerQueues[i].length > 0) {
-                    nextCustomer = removeCustomerFromQueue(&tellerQueues[i]);
+                if (i != event->tellerID && tellerQueues[i]->length > 0) {
+                    nextCustomer = removeCustomerFromQueue(tellerQueues[i]);
                     break;
                 }
             }
@@ -259,11 +273,30 @@ void tellerFreeAction(Event* event) {
     }
 }
 
-void initializeSimulation(int customers, int tellers, float simTime, float avgServiceTime, QueueType qType) {
-   
+void initializeSimulation(int numCustomers, int numTellers, float simTime, 
+                         float avgServiceTime, QueueType qType) {
     stats = (SimulationStats*)malloc(sizeof(SimulationStats));
-    stats->totalCustomers = customers;
-    stats->totalTellers = tellers;
+    if (stats == NULL) {
+        printf("Error: Memory allocation failed for stats\n");
+        exit(1);
+    }
+    
+    customers = (Customer*)malloc(numCustomers * sizeof(Customer));
+    if (customers == NULL) {
+        printf("Error: Memory allocation failed for customers\n");
+        free(stats);
+        exit(1);
+    }
+    
+    tellers = (Teller*)malloc(numTellers * sizeof(Teller));
+    if (tellers == NULL) {
+        printf("Error: Memory allocation failed for tellers\n");
+        free(stats);
+        free(customers);
+        exit(1);
+    }
+    stats->totalCustomers = numCustomers;
+    stats->totalTellers = numTellers;
     stats->simulationTime = simTime;
     stats->averageServiceTime = avgServiceTime;
     stats->queueType = qType;
@@ -272,43 +305,41 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
     stats->totalServiceTime = 0;
     stats->totalIdleTime = 0;
     stats->customersServed = 0;
-    stats->waitTimes = (float*)malloc(customers * sizeof(float));
+    stats->waitTimes = (float*)malloc(numCustomers * sizeof(float));
     stats->waitTimeCount = 0;
 
     eventQueue = createEventQueue();
 
 
-    ::customers = (Customer*)malloc(customers * sizeof(Customer));
-    for (int i = 0; i < customers; i++) {
-        ::customers[i].id = i;
-        ::customers[i].arrivalTime = 0;
-        ::customers[i].serviceStartTime = 0;
-        ::customers[i].departureTime = 0;
-        ::customers[i].tellerID = -1;
-        ::customers[i].next = NULL;
+    for (int i = 0; i < numCustomers; i++) {
+        customers[i].id = i;
+        customers[i].arrivalTime = 0;
+        customers[i].serviceStartTime = 0;
+        customers[i].departureTime = 0;
+        customers[i].tellerID = -1;
+        customers[i].next = NULL;
     }
-
-    ::tellers = (Teller*)malloc(tellers * sizeof(Teller));
-    for (int i = 0; i < tellers; i++) {
-        ::tellers[i].id = i;
-        ::tellers[i].idleTime = MIN_IDLE_TIME + (MAX_IDLE_TIME - MIN_IDLE_TIME) * rand() / (float)RAND_MAX;
-        ::tellers[i].totalServiceTime = 0;
-        ::tellers[i].totalIdleTime = 0;
-        ::tellers[i].customersServed = 0;
-        ::tellers[i].isIdle = 1;
-        ::tellers[i].next = NULL;
+    
+    for (int i = 0; i < numTellers; i++) {
+        tellers[i].id = i;
+        tellers[i].idleTime = MIN_IDLE_TIME + (MAX_IDLE_TIME - MIN_IDLE_TIME) * rand() / (float)RAND_MAX;
+        tellers[i].totalServiceTime = 0;
+        tellers[i].totalIdleTime = 0;
+        tellers[i].customersServed = 0;
+        tellers[i].isIdle = 1;
+        tellers[i].next = NULL;
     }
 
     if (qType == SINGLE_QUEUE) {
         singleQueue = createTellerQueue(-1);
     } else {
-        tellerQueues = (TellerQueue**)malloc(tellers * sizeof(TellerQueue*));
-        for (int i = 0; i < tellers; i++) {
+        tellerQueues = (TellerQueue**)malloc(numTellers * sizeof(TellerQueue*));
+        for (int i = 0; i < numTellers; i++) {
             tellerQueues[i] = createTellerQueue(i);
         }
     }
 
-    for (int i = 0; i < customers; i++) {
+    for (int i = 0; i < numCustomers; i++) {
         float arrivalTime = generateRandomArrivalTime();
 
         Event* arrivalEvent = (Event*)malloc(sizeof(Event));
@@ -322,7 +353,7 @@ void initializeSimulation(int customers, int tellers, float simTime, float avgSe
     }
 
     printf("Simulation initialized with %d customers, %d tellers, %.2f minutes simulation time\n", 
-           customers, tellers, simTime);
+           numCustomers, numTellers, simTime);
     printf("Queue type: %s\n", (qType == SINGLE_QUEUE) ? "Single Queue" : "Separate Queues");
 }
 
@@ -400,6 +431,35 @@ void printStatistics() {
     printf("\n==============================\n");
 }
 
+void cleanup(void) {
+    if (eventQueue != NULL) {
+        freeEventQueue(eventQueue);
+    }
+    if (singleQueue != NULL) {
+        freeTellerQueue(singleQueue);
+    }
+    if (tellerQueues != NULL) {
+        for (int i = 0; i < stats->totalTellers; i++) {
+            if (tellerQueues[i] != NULL) {
+                freeTellerQueue(tellerQueues[i]);
+            }
+        }
+        free(tellerQueues);
+    }
+    if (stats != NULL) {
+        if (stats->waitTimes != NULL) {
+            free(stats->waitTimes);
+        }
+        free(stats);
+    }
+    if (customers != NULL) {
+        free(customers);
+    }
+    if (tellers != NULL) {
+        free(tellers);
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 5) {
         printf("Usage: %s #customers #tellers simulationTime averageServiceTime\n", argv[0]);
@@ -429,16 +489,11 @@ int main(int argc, char* argv[]) {
 
     float singleQueueAvgWaitTime = calculateMean(stats->waitTimes, stats->waitTimeCount);
     float singleQueueMaxWaitTime = stats->maxWaitTime;
-
-    freeEventQueue(eventQueue);
-    if (singleQueue != NULL) freeTellerQueue(singleQueue);
-    free(stats->waitTimes);
-    free(stats);
-    free(customers);
-    free(tellers);
-
+    
+    cleanup();  // Use cleanup function instead of manual freeing
+    
     srand(time(NULL));
-
+    
     printf("\n\n*** SIMULATION 2: SEPARATE QUEUES ***\n");
     initializeSimulation(numCustomers, numTellers, simulationTime, averageServiceTime, SEPARATE_QUEUES);
     runSimulation();
@@ -461,17 +516,7 @@ int main(int argc, char* argv[]) {
                ((singleQueueAvgWaitTime - separateQueuesAvgWaitTime) / singleQueueAvgWaitTime) * 100);
     }
 
-    freeEventQueue(eventQueue);
-    if (tellerQueues != NULL) {
-        for (int i = 0; i < numTellers; i++) {
-            freeTellerQueue(tellerQueues[i]);
-        }
-        free(tellerQueues);
-    }
-    free(stats->waitTimes);
-    free(stats);
-    free(customers);
-    free(tellers);
+    cleanup();
 
     return 0;
 }
