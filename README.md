@@ -25,7 +25,7 @@ This project simulates and compares two different bank queue management systems:
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/bankqsim.git
+git clone https://github.com/Sagnik-rc/BankQSim.git
 cd bankqsim
 gcc -o bankqsim main.c -lm
 ```
